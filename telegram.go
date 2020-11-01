@@ -56,27 +56,27 @@ type Response struct {
 	Description string `json:"description"`
 }
 
-func sendMessage(endpoint string, message MessagePayload, c echo.Context) {
-	apiURL := "https://api.telegram.org/bot" + os.Getenv("BOT_TOKEN") + "/"
+func sendMessage(message MessagePayload, c echo.Context) {
+	apiURL := "https://api.telegram.org/bot" + os.Getenv("BOT_TOKEN") + "/sendMessage"
 	payload, _ := json.Marshal(message)
 	resp, err := http.Post(apiURL+"sendMessage", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		c.Echo().Logger.Error("Error sending message to Telegram", err)
+		c.Logger().Error("Error sending message to Telegram", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		c.Echo().Logger.Error("Error reading Telegram response", err)
+		c.Logger().Error("Error reading Telegram response", err)
 	}
-	c.Echo().Logger.Info("Telegram response body: %s", body)
+	c.Logger().Info("Telegram response body: %s", body)
 	response := Response{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		c.Echo().Logger.Error("Error decoding Telegram response body", err)
+		c.Logger().Error("Error decoding Telegram response body", err)
 	}
 	if !response.OK {
-		c.Echo().Logger.Error("Telegram request unsuccesful, description: %s", response.Description)
+		c.Logger().Error("Telegram request unsuccesful, description: %s", response.Description)
 	} else {
-		c.Echo().Logger.Info("Telegram message sent successfully")
+		c.Logger().Info("Telegram message sent successfully")
 	}
 }
