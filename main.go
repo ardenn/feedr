@@ -8,8 +8,10 @@ import (
 func main() {
 	// Echo instance
 	e := echo.New()
+	fire, ctx := initClient()
 
 	// Middleware
+	e.Use(FirestoreToContext(fire, ctx))
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "${time_rfc3339_nano} ${level} ${remote_ip} ${method} ${path} ${status} latency: ${latency_human}\n",
 	}))
