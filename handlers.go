@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/labstack/echo"
-	"google.golang.org/api/iterator"
 )
 
 // IsURL validates a URL string
@@ -54,9 +55,10 @@ func processNewURL(url string, c echo.Context) (*FireFeed, error) {
 }
 
 func startHandler(c echo.Context, update *Update, fire *firestore.Client) error {
+	user := FireUser{UserName: update.Message.From.Username, ChatID: strconv.Itoa(update.Message.Chat.ChatID)}
 	_, err := fire.Collection("userFeeds").Doc(
 		strconv.Itoa(update.Message.From.UserID),
-	).Set(c.Request().Context(), map[string]string{"username": update.Message.From.Username})
+	).Set(c.Request().Context(), &user)
 	if err != nil {
 		c.Logger().Error("Firestore error", err)
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured"}, c)
@@ -97,42 +99,64 @@ func addHandler(c echo.Context, update *Update, fire *firestore.Client) error {
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: err.Error()}, c)
 		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
 	}
-	_, _, err = fire.Collection("userFeeds").Doc(
-		strconv.Itoa(update.Message.From.UserID),
-	).Collection("feeds").Add(c.Request().Context(), fireFeed)
+	user := FireUser{}
+	doc, err := fire.Collection("userFeeds").Doc(strconv.Itoa(update.Message.From.UserID)).Get(c.Request().Context())
 	if err != nil {
 		c.Logger().Error("Firestore error", err)
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"}, c)
+		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	}
+	if err = doc.DataTo(&user); err != nil {
+		c.Logger().Error("Firestore error", err)
+		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"}, c)
+		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	}
+	if fireFeed.IsRSS {
+		user.Feeds = append(user.Feeds, fireFeed.URL)
+	} else {
+		user.Atoms = append(user.Atoms, fireFeed.URL)
+	}
+	user.ChatID = strconv.Itoa(update.Message.Chat.ChatID)
+	user.UserName = update.Message.From.Username
+	_, err = fire.Collection("userFeeds").Doc(
+		strconv.Itoa(update.Message.From.UserID),
+	).Set(c.Request().Context(), map[string]interface{}{
+		"feeds": user.Feeds,
+		"atoms": user.Atoms,
+	}, firestore.MergeAll)
+	if err != nil {
+		c.Logger().Error("Firestore error", err)
+		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"}, c)
+		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
 	}
 	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Success! Feed has been added"}, c)
 	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
 }
 func listHandler(c echo.Context, update *Update, fire *firestore.Client) error {
 	message := "Your feeds:\n"
-	var feed FireFeed
-	iter := fire.Collection("userFeeds").Doc(
+	user := FireUser{}
+	doc, err := fire.Collection("userFeeds").Doc(
 		strconv.Itoa(update.Message.From.UserID),
-	).Collection("feeds").Documents(c.Request().Context())
-	defer iter.Stop()
-	index := 0
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			if index == 0 {
-				sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "You have 0 feeds"}, c)
+	).Get(c.Request().Context())
+	if err != nil {
+		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occurred when fetching feeds"}, c)
+		c.Logger().Errorf("Error reading firestore feed list", err)
+	}
+	if err = doc.DataTo(&user); err != nil {
+		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occurred when fetching feeds"}, c)
+		c.Logger().Errorf("Error reading firestore feed list", err)
+	}
+	feeds := append(user.Feeds, user.Atoms...)
+	if feeds == nil {
+		message = "You haven't added any feeds."
+	} else {
+		for _, link := range feeds {
+			val, err := url.Parse(link)
+			if err != nil {
+				continue
 			}
-			break
+			message += fmt.Sprintln("-", val.Host)
 		}
-		if err != nil {
-			sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occurred when fetching feeds"}, c)
-			c.Logger().Errorf("Error reading firestore feed list", err)
-		}
-		if err := doc.DataTo(&feed); err != nil {
-			sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occurred when fetching feeds"}, c)
-			c.Logger().Errorf("Error reading firestore feed list", err)
-		}
-		message += strconv.Itoa(index+1) + ".\t" + feed.URL + "\n"
-		index++
 	}
 	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message}, c)
 	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
@@ -160,6 +184,23 @@ func commandHandler(c echo.Context) error {
 		return addHandler(c, &update, cc.fire)
 	default:
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"}, c)
+	}
+	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+}
+func crawlHandler(c echo.Context) error {
+	cc := c.(*CustomContext)
+	lastFetch := LastFetch{}
+	def := time.Now().Add(time.Minute * -30)
+	doc, err := cc.fire.Collection("userFeeds").Doc("lastFetch").Get(c.Request().Context())
+	if err != nil {
+		c.Logger().Error("Error fetching last crawl time, using default", err)
+		lastFetch.RSS = def
+		lastFetch.Atom = def
+	}
+	if err = doc.DataTo(&lastFetch); err != nil {
+		c.Logger().Error("Error reading last crawl time, using default", err)
+		lastFetch.RSS = def
+		lastFetch.Atom = def
 	}
 	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
 }

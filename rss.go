@@ -27,17 +27,14 @@ type Item struct {
 	PubDate string `xml:"pubDate" json:"pubdate"`
 }
 
-func (rss *Rss) toTelegram(fire *firestore.Client, c echo.Context) (feeds []TelegramFeed) {
-	fire.Collection("userFeeds").Doc("lastFetch").Set(
-		context.Background(), map[string]time.Time{"RSS": time.Now()},
-	)
+func (rss *Rss) toTelegram(fire *firestore.Client, c echo.Context, lastDate time.Time) (feeds []TelegramFeed) {
 	for _, item := range rss.Channel.Items {
-		if item.pubTime().After(time.Now()) {
+		if item.pubTime().After(lastDate) {
 			feeds = append(feeds, TelegramFeed{Link: item.Link, Name: rss.Channel.Title, Description: item.Title})
 		}
 	}
-	if _, err := fire.Collection("userFeeds").Doc("lastFetch").Set(
-		context.Background(), map[string]time.Time{"RSS": time.Now()},
+	if _, err := fire.Collection("lastFetch").Doc("lastFetch").Set(
+		context.Background(), map[string]time.Time{"RSS": time.Now()}, firestore.MergeAll,
 	); err != nil {
 		c.Logger().Error("Error saving lastFetch", err)
 	}

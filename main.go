@@ -20,6 +20,7 @@ func main() {
 
 	// Routes
 	e.POST("/command", commandHandler)
+	e.GET("/crawl", commandHandler)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":8000"))
