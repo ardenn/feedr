@@ -1,5 +1,13 @@
 package main
 
+import (
+	"context"
+	"time"
+
+	"cloud.google.com/go/firestore"
+	"github.com/labstack/echo"
+)
+
 // Rss model
 type Rss struct {
 	Channel Channel `xml:"channel" json:"channel"`
@@ -19,10 +27,27 @@ type Item struct {
 	PubDate string `xml:"pubDate" json:"pubdate"`
 }
 
-func (rss *Rss) toTelegram() []TelegramFeed {
-	feeds := make([]TelegramFeed, len(rss.Channel.Items))
-	for i, item := range rss.Channel.Items {
-		feeds[i] = TelegramFeed{Link: item.Link, Name: rss.Channel.Title, Description: item.Title}
+func (rss *Rss) toTelegram(fire *firestore.Client, c echo.Context) (feeds []TelegramFeed) {
+	fire.Collection("userFeeds").Doc("lastFetch").Set(
+		context.Background(), map[string]time.Time{"RSS": time.Now()},
+	)
+	for _, item := range rss.Channel.Items {
+		if item.pubTime().After(time.Now()) {
+			feeds = append(feeds, TelegramFeed{Link: item.Link, Name: rss.Channel.Title, Description: item.Title})
+		}
+	}
+	if _, err := fire.Collection("userFeeds").Doc("lastFetch").Set(
+		context.Background(), map[string]time.Time{"RSS": time.Now()},
+	); err != nil {
+		c.Logger().Error("Error saving lastFetch", err)
 	}
 	return feeds
+}
+
+func (item *Item) pubTime() time.Time {
+	pubDate, err := time.Parse(time.RFC822Z, item.PubDate)
+	if err != nil {
+		return time.Now()
+	}
+	return pubDate
 }
