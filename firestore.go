@@ -5,11 +5,11 @@ import (
 	"log"
 	"os"
 
-	"cloud.google.com/go/firestore"
+	firestore "cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 )
 
-func initClient() (*firestore.Client, *context.Context) {
+func initClient() *firestore.Client {
 	ctx := context.Background()
 	conf := &firebase.Config{ProjectID: os.Getenv("PROJECT_ID")}
 	app, err := firebase.NewApp(ctx, conf)
@@ -21,8 +21,7 @@ func initClient() (*firestore.Client, *context.Context) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer client.Close()
-	return client, &ctx
+	return client
 }
 
 // FireFeed is a firestore feed model
