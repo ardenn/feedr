@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/labstack/echo"
@@ -77,15 +76,15 @@ func helpHandler(c echo.Context, update *Update) error {
 
 	/help - Show this help text
 	/list - List your subscribed feeds
-	/add<feed url> - Subscribe to a new feed
-	/remove<feed url> - Unsubsribe from a feed
+	/add <feed url> - Subscribe to a new feed
+	/remove <feed url> - Unsubsribe from a feed
 	/clear - Clear all feeds and reset account
 	`
 	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message}, c)
 	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
 }
 func addHandler(c echo.Context, update *Update, fire *firestore.Client) error {
-	raw := strings.Split(update.Message.Text, "/add")
+	raw := strings.Split(update.Message.Text, "/add ")
 	var rawURL string = raw[1]
 	if !strings.HasPrefix(rawURL, "http") {
 		rawURL = "https://" + rawURL
@@ -180,7 +179,8 @@ func commandHandler(c echo.Context) error {
 		return helpHandler(c, &update)
 	case update.Message.Text == "/list":
 		return listHandler(c, &update, cc.fire)
-	case strings.HasPrefix(update.Message.Text, "/add"):
+	case strings.HasPrefix(update.Message.Text, "/add "):
+		fmt.Println(update.Message.Text)
 		return addHandler(c, &update, cc.fire)
 	default:
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"}, c)
@@ -189,18 +189,6 @@ func commandHandler(c echo.Context) error {
 }
 func crawlHandler(c echo.Context) error {
 	cc := c.(*CustomContext)
-	lastFetch := LastFetch{}
-	def := time.Now().Add(time.Minute * -30)
-	doc, err := cc.fire.Collection("userFeeds").Doc("lastFetch").Get(c.Request().Context())
-	if err != nil {
-		c.Logger().Error("Error fetching last crawl time, using default", err)
-		lastFetch.RSS = def
-		lastFetch.Atom = def
-	}
-	if err = doc.DataTo(&lastFetch); err != nil {
-		c.Logger().Error("Error reading last crawl time, using default", err)
-		lastFetch.RSS = def
-		lastFetch.Atom = def
-	}
+	fetchUsers(cc.fire, c)
 	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
 }

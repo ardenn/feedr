@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	"github.com/labstack/echo"
 )
 
@@ -27,18 +26,13 @@ type Item struct {
 	PubDate string `xml:"pubDate" json:"pubdate"`
 }
 
-func (rss *Rss) toTelegram(fire *firestore.Client, c echo.Context, lastDate time.Time) (feeds []TelegramFeed) {
+func (rss *Rss) toTelegram(c echo.Context, lastDate time.Time, chatID int) {
 	for _, item := range rss.Channel.Items {
 		if item.pubTime().After(lastDate) {
-			feeds = append(feeds, TelegramFeed{Link: item.Link, Name: rss.Channel.Title, Description: item.Title})
+			message := fmt.Sprintf("<b>%s</b>\n<a href='%s'>%s</>", rss.Channel.Title, item.Link, item.Title)
+			sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"}, c)
 		}
 	}
-	if _, err := fire.Collection("lastFetch").Doc("lastFetch").Set(
-		context.Background(), map[string]time.Time{"RSS": time.Now()}, firestore.MergeAll,
-	); err != nil {
-		c.Logger().Error("Error saving lastFetch", err)
-	}
-	return feeds
 }
 
 func (item *Item) pubTime() time.Time {

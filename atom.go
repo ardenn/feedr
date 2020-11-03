@@ -1,5 +1,12 @@
 package main
 
+import (
+	"fmt"
+	"time"
+
+	"github.com/labstack/echo"
+)
+
 // Atom model
 type Atom struct {
 	Title   string  `xml:"title" json:"title"`
@@ -23,10 +30,19 @@ type Link struct {
 	Href string `xml:"href,attr" json:"href"`
 }
 
-func (atom *Atom) toTelegram() []TelegramFeed {
-	feeds := make([]TelegramFeed, len(atom.Entries))
-	for i, item := range atom.Entries {
-		feeds[i] = TelegramFeed{Link: item.Link.Href, Name: atom.Title, Description: item.Summary}
+func (atom *Atom) toTelegram(c echo.Context, lastDate time.Time, chatID int) {
+	for _, item := range atom.Entries {
+		if item.pubTime().After(lastDate) {
+			message := fmt.Sprintf("*%s*\n[%s](%s)", atom.Title, item.Title, item.Link.Href)
+			sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "MarkdownV2"}, c)
+		}
 	}
-	return feeds
+}
+
+func (item *Entry) pubTime() time.Time {
+	pubDate, err := time.Parse(time.RFC3339, item.Updated)
+	if err != nil {
+		return time.Now()
+	}
+	return pubDate
 }
