@@ -61,6 +61,7 @@ func startHandler(c echo.Context, update *Update, fire *firestore.Client) error 
 	if err != nil {
 		c.Logger().Error("Firestore error", err)
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured"}, c)
+		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
 	}
 	message := `
 	Welcome to Feedr.

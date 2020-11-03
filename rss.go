@@ -36,7 +36,7 @@ func (rss *Rss) toTelegram(c echo.Context, lastDate time.Time, chatID int) {
 }
 
 func (item *Item) pubTime() time.Time {
-	pubDate, err := time.Parse(time.RFC822Z, item.PubDate)
+	pubDate, err := time.Parse(time.RFC1123Z, item.PubDate)
 	if err != nil {
 		return time.Now()
 	}
