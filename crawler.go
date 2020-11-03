@@ -22,7 +22,7 @@ func fetchUsers(fire *firestore.Client, c echo.Context) {
 			break
 		}
 		if err != nil {
-			c.Logger().Errorf("Error reading crawlFeeds", err)
+			c.Logger().Errorf("Error reading crawl Feeds", err)
 		}
 		user := FireUser{}
 		if err := doc.DataTo(&user); err != nil {
