@@ -33,7 +33,7 @@ type Link struct {
 func (atom *Atom) toTelegram(c echo.Context, lastDate time.Time, chatID int) {
 	for _, item := range atom.Entries {
 		if item.pubTime().After(lastDate) {
-			message := fmt.Sprintf("<b>%s</b>\n<a href='%s'>%s</>", atom.Title, item.Title, item.Link.Href)
+			message := fmt.Sprintf("<b>%s</b>\n<a href='%s'>%s</>", atom.Title, item.Link.Href, item.Title)
 			sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"}, c)
 		}
 	}
