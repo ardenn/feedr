@@ -61,7 +61,7 @@ func startHandler(c echo.Context, update *Update, fire *firestore.Client) error 
 	if err != nil {
 		c.Logger().Error("Firestore error", err)
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured"}, c)
-		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+		return c.JSON(http.StatusOK, `{"message":"success"}`)
 	}
 	message := `
 	Welcome to Feedr.
@@ -69,7 +69,7 @@ func startHandler(c echo.Context, update *Update, fire *firestore.Client) error 
 	Add feeds (atom/rss) and we'll subscribe and ping you whenever there's an update.
 	`
 	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message}, c)
-	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	return c.JSON(http.StatusOK, `{"message":"success"}`)
 }
 func helpHandler(c echo.Context, update *Update) error {
 	message := `
@@ -82,7 +82,7 @@ func helpHandler(c echo.Context, update *Update) error {
 	/clear - Clear all feeds and reset account
 	`
 	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message}, c)
-	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	return c.JSON(http.StatusOK, `{"message":"success"}`)
 }
 func addHandler(c echo.Context, update *Update, fire *firestore.Client) error {
 	raw := strings.Split(update.Message.Text, "/add ")
@@ -92,24 +92,24 @@ func addHandler(c echo.Context, update *Update, fire *firestore.Client) error {
 	}
 	if _, err := url.Parse(rawURL); err != nil {
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That was an invalid URL"}, c)
-		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+		return c.JSON(http.StatusOK, `{"message":"success"}`)
 	}
 	fireFeed, err := processNewURL(rawURL, c)
 	if err != nil {
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: err.Error()}, c)
-		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+		return c.JSON(http.StatusOK, `{"message":"success"}`)
 	}
 	user := FireUser{}
 	doc, err := fire.Collection("userFeeds").Doc(strconv.Itoa(update.Message.From.UserID)).Get(c.Request().Context())
 	if err != nil {
 		c.Logger().Error("Firestore error", err)
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"}, c)
-		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+		return c.JSON(http.StatusOK, `{"message":"success"}`)
 	}
 	if err = doc.DataTo(&user); err != nil {
 		c.Logger().Error("Firestore error", err)
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"}, c)
-		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+		return c.JSON(http.StatusOK, `{"message":"success"}`)
 	}
 	if fireFeed.IsRSS {
 		user.Feeds = append(user.Feeds, fireFeed.URL)
@@ -127,10 +127,10 @@ func addHandler(c echo.Context, update *Update, fire *firestore.Client) error {
 	if err != nil {
 		c.Logger().Error("Firestore error", err)
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"}, c)
-		return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+		return c.JSON(http.StatusOK, `{"message":"success"}`)
 	}
 	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Success! Feed has been added"}, c)
-	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	return c.JSON(http.StatusOK, `{"message":"success"}`)
 }
 func listHandler(c echo.Context, update *Update, fire *firestore.Client) error {
 	message := "Your feeds:\n"
@@ -159,10 +159,10 @@ func listHandler(c echo.Context, update *Update, fire *firestore.Client) error {
 		}
 	}
 	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message}, c)
-	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	return c.JSON(http.StatusOK, `{"message":"success"}`)
 }
 func removeHandler(c echo.Context, update *Update, fire *firestore.Client) error {
-	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	return c.JSON(http.StatusOK, `{"message":"success"}`)
 }
 func commandHandler(c echo.Context) error {
 	cc := c.(*CustomContext)
@@ -186,10 +186,10 @@ func commandHandler(c echo.Context) error {
 	default:
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"}, c)
 	}
-	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	return c.JSON(http.StatusOK, `{"message":"success"}`)
 }
 func crawlHandler(c echo.Context) error {
 	cc := c.(*CustomContext)
 	fetchUsers(cc.fire, c)
-	return c.JSON(http.StatusAccepted, `{"message":"success"}`)
+	return c.JSON(http.StatusOK, `{"message":"success"}`)
 }
