@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"time"
-
-	"github.com/labstack/echo"
 )
 
 // Rss model
@@ -26,11 +24,11 @@ type Item struct {
 	PubDate string `xml:"pubDate" json:"pubdate"`
 }
 
-func (rss *Rss) toTelegram(c echo.Context, lastDate time.Time, chatID int) {
+func (rss *Rss) toTelegram(lastDate time.Time, chatID int) {
 	for _, item := range rss.Channel.Items {
 		if item.pubTime().After(lastDate) {
 			message := fmt.Sprintf("<b>%s</b>\n<a href='%s'>%s</>", rss.Channel.Title, item.Link, item.Title)
-			sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"}, c)
+			sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"})
 		}
 	}
 }

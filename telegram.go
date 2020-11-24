@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/labstack/echo"
+	"github.com/rs/zerolog/log"
 )
 
 // TelegramFeed model
@@ -56,27 +56,27 @@ type Response struct {
 	Description string `json:"description"`
 }
 
-func sendMessage(message MessagePayload, c echo.Context) {
+func sendMessage(message MessagePayload) {
 	apiURL := "https://api.telegram.org/bot" + os.Getenv("BOT_TOKEN") + "/"
 	payload, _ := json.Marshal(message)
 	resp, err := http.Post(apiURL+"sendMessage", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		c.Logger().Errorf("Error sending message to Telegram", err)
+		log.Error().Msgf("Error sending message to Telegram", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		c.Logger().Errorf("Error reading Telegram response", err)
+		log.Error().Msgf("Error reading Telegram response", err)
 	}
-	c.Logger().Info("Telegram response body: %s", body)
+	log.Printf("Telegram response body: %s", body)
 	response := Response{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		c.Logger().Errorf("Error decoding Telegram response body", err)
+		log.Error().Msgf("Error decoding Telegram response body", err)
 	}
 	if !response.OK {
-		c.Logger().Errorf("Telegram request unsuccesful, description: %s", response.Description)
+		log.Error().Msgf("Telegram request unsuccesful, description: %s", response.Description)
 	} else {
-		c.Logger().Info("Telegram message sent successfully")
+		log.Printf("Telegram message sent successfully")
 	}
 }
