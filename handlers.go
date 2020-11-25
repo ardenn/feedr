@@ -25,27 +25,27 @@ func IsURL(str string) bool {
 func processNewURL(ctx context.Context, url string) (*FireFeed, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Error().Msgf("Error processing new URL %s", err)
+		log.Error().Str("error", err.Error()).Str("feedUrl", url).Msg("Error fetching new URL")
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if !strings.Contains(resp.Header.Get("Content-Type"), "xml") {
-		log.Error().Msgf("Error processing new URL %s", err)
+		log.Error().Str("error", err.Error()).Str("feedUrl", url).Msg("URL response not valid xml")
 		return nil, errors.New("Oops! we couldn't get a valid feed from that URL")
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Msgf("Error processing new URL %s", err)
+		log.Error().Str("error", err.Error()).Str("feedUrl", url).Msg("Error processing new URL")
 		return nil, err
 	}
 	rss := Rss{}
 	err = xml.Unmarshal(body, &rss)
 	if err != nil || rss.Channel.Title == "" {
-		log.Error().Msgf("Not a valid RSS feed: %s", url)
+		log.Error().Str("feedUrl", url).Msg("Not a valid RSS feed")
 		atom := Atom{}
 		err = xml.Unmarshal(body, &atom)
 		if err != nil || atom.Title == "" {
-			log.Error().Msgf("Not a valid ATOM feed: %s", url)
+			log.Error().Str("feedUrl", url).Msg("Not a valid ATOM feed")
 			return nil, errors.New("Oops! we couldn't get a valid feed from that URL")
 		}
 		return &FireFeed{URL: url, IsRSS: false}, nil
@@ -60,7 +60,7 @@ func startHandler(ctx context.Context, update *Update, fire *firestore.Client) {
 		strconv.Itoa(update.Message.From.UserID),
 	).Set(ctx, &user)
 	if err != nil {
-		log.Error().Msgf("Firestore error %s", err.Error())
+		log.Error().Str("error", err.Error()).Msg("Firestore error setting /start user")
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured"})
 		return
 	}
@@ -104,12 +104,12 @@ func addHandler(ctx context.Context, update *Update, fire *firestore.Client) {
 	user := FireUser{}
 	doc, err := fire.Collection("userFeeds").Doc(strconv.Itoa(update.Message.From.UserID)).Get(ctx)
 	if err != nil {
-		log.Error().Msgf("Firestore error", err)
+		log.Error().Str("error", err.Error()).Msg("Firestore error")
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"})
 		return
 	}
 	if err = doc.DataTo(&user); err != nil {
-		log.Error().Msgf("Firestore error", err)
+		log.Error().Str("error", err.Error()).Msg("Firestore error")
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"})
 		return
 	}
@@ -127,7 +127,7 @@ func addHandler(ctx context.Context, update *Update, fire *firestore.Client) {
 		"atoms": user.Atoms,
 	}, firestore.MergeAll)
 	if err != nil {
-		log.Error().Msgf("Firestore error", err)
+		log.Error().Str("error", err.Error()).Msg("Firestore error")
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"})
 		return
 	}
@@ -141,11 +141,11 @@ func listHandler(ctx context.Context, update *Update, fire *firestore.Client) {
 		strconv.Itoa(update.Message.From.UserID),
 	).Get(ctx)
 	if err != nil {
-		log.Error().Msgf("Error reading firestore feed list", err)
+		log.Error().Str("error", err.Error()).Msg("Error reading firestore feed list")
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occurred when fetching feeds"})
 	}
 	if err = doc.DataTo(&user); err != nil {
-		log.Error().Msgf("Error reading firestore feed list", err)
+		log.Error().Str("error", err.Error()).Msg("Error reading firestore feed list")
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occurred when fetching feeds"})
 	}
 	feeds := append(user.Feeds, user.Atoms...)
@@ -172,7 +172,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	update := Update{}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Error().Msgf("Error reading request body", err)
+		log.Error().Str("error", err.Error()).Msg("Error reading request body")
 	}
 	json.Unmarshal(body, &update)
 	switch {
@@ -185,7 +185,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(update.Message.Text, "/add "):
 		addHandler(r.Context(), &update, fire)
 	default:
-		log.Printf("Invalid command", update.Message.Text)
+		log.Info().Str("command", update.Message.Text).Msg("Invalid command")
 		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"})
 	}
 	w.WriteHeader(http.StatusOK)
