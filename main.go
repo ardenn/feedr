@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -17,6 +16,8 @@ func main() {
 	r := chi.NewRouter()
 	fire := initClient()
 	defer fire.Close()
+	db := dbConnect()
+	defer db.Close()
 
 	// Middleware
 	r.Use(middleware.RequestID)
@@ -24,17 +25,7 @@ func main() {
 	// r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(hlog.NewHandler(log.Logger))
-	r.Use(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
-		hlog.FromRequest(r).Info().
-			Str("method", r.Method).
-			Str("requestID", middleware.GetReqID(r.Context())).
-			Str("source", r.RemoteAddr).
-			Stringer("url", r.URL).
-			Int("status", status).
-			Int("size", size).
-			Dur("latency", duration).
-			Msg("Incoming Request")
-	}))
+	r.Use(hlog.AccessHandler(accessHandlerFunc))
 	r.Use(FirestoreToContext(fire))
 
 	// Routes
