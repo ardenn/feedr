@@ -23,11 +23,11 @@ func fetchUsers(ctx context.Context, fire *firestore.Client) {
 			break
 		}
 		if err != nil {
-			log.Error().Msgf("Error reading crawl Feeds", err)
+			log.Error().Str("error", err.Error()).Msg("Error reading crawl Feeds")
 		}
 		user := FireUser{}
 		if err := doc.DataTo(&user); err != nil {
-			log.Error().Msgf("Error reading firestore users list", err)
+			log.Error().Str("error", err.Error()).Msg("Error reading firestore users list")
 		}
 		lastFetch := time.Now().Add(time.Minute * -30)
 		chatID, _ := strconv.ParseInt(user.ChatID, 0, 64)
@@ -46,25 +46,25 @@ func fetchUsers(ctx context.Context, fire *firestore.Client) {
 func fetchFeed(str string, isRSS bool, lastUpdated time.Time, chatID int, wg *sync.WaitGroup) {
 	resp, err := http.Get(str)
 	if err != nil {
-		log.Error().Msgf("Error fetching feed", str, err)
+		log.Error().Str("error", err.Error()).Str("feedUrl", str).Msg("Error fetching feed")
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Msgf("Error processing feed URL", str, err)
+		log.Error().Str("error", err.Error()).Str("feedUrl", str).Msg("Error processing feed URL")
 	}
 	if isRSS {
 		feed := Rss{}
 		err = xml.Unmarshal(body, &feed)
 		if err != nil || feed.Channel.Title == "" {
-			log.Error().Msgf("Not a valid RSS feed:", str)
+			log.Error().Str("error", err.Error()).Str("feedUrl", str).Msg("Not a valid RSS feed:")
 		}
 		feed.toTelegram(lastUpdated, chatID)
 	} else {
 		feed := Atom{}
 		err = xml.Unmarshal(body, &feed)
 		if err != nil || feed.Title == "" {
-			log.Error().Msgf("Not a valid ATOM feed:", str)
+			log.Error().Str("error", err.Error()).Str("feedUrl", str).Msg("Not a valid ATOM feed")
 		}
 		feed.toTelegram(lastUpdated, chatID)
 	}
