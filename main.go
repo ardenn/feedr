@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -41,7 +42,9 @@ func main() {
 	r.Get("/crawl", crawlHandler)
 
 	// Start server
-	log.Info().Str("port", os.Getenv("PORT")).Msg("Server listening on port " + os.Getenv("PORT") + " ...")
+	fmt.Println(banner)
+	fmt.Println("Version: ", version)
+	fmt.Println("Server started on port " + os.Getenv("PORT") + " ...")
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), r); err != nil {
 		log.Fatal().Err(err).Msg("Startup failed")
 	}
