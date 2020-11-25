@@ -30,7 +30,7 @@ func processNewURL(ctx context.Context, url string) (*FireFeed, error) {
 	}
 	defer resp.Body.Close()
 	if !strings.Contains(resp.Header.Get("Content-Type"), "xml") {
-		log.Error().Str("error", err.Error()).Str("feedUrl", url).Msg("URL response not valid xml")
+		log.Error().Str("feedUrl", url).Msg("URL response not valid xml")
 		return nil, errors.New("Oops! we couldn't get a valid feed from that URL")
 	}
 	body, err := ioutil.ReadAll(resp.Body)

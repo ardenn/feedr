@@ -57,14 +57,14 @@ func fetchFeed(str string, isRSS bool, lastUpdated time.Time, chatID int, wg *sy
 		feed := Rss{}
 		err = xml.Unmarshal(body, &feed)
 		if err != nil || feed.Channel.Title == "" {
-			log.Error().Str("error", err.Error()).Str("feedUrl", str).Msg("Not a valid RSS feed:")
+			log.Error().Str("feedUrl", str).Msg("Not a valid RSS feed:")
 		}
 		feed.toTelegram(lastUpdated, chatID)
 	} else {
 		feed := Atom{}
 		err = xml.Unmarshal(body, &feed)
 		if err != nil || feed.Title == "" {
-			log.Error().Str("error", err.Error()).Str("feedUrl", str).Msg("Not a valid ATOM feed")
+			log.Error().Str("feedUrl", str).Msg("Not a valid ATOM feed")
 		}
 		feed.toTelegram(lastUpdated, chatID)
 	}

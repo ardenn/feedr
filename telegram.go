@@ -75,7 +75,7 @@ func sendMessage(message MessagePayload) {
 		log.Error().Str("error", err.Error()).Msg("Error decoding Telegram response body")
 	}
 	if !response.OK {
-		log.Error().Str("error", err.Error()).Str("despcription", response.Description).Msg("Telegram request unsuccesful")
+		log.Info().Str("description", response.Description).Msg("Telegram request unsuccesful")
 	} else {
 		log.Info().Msg("Telegram message sent successfully")
 	}
