@@ -27,18 +27,21 @@ type PgUser struct {
 	UserID    int  `pg:",unique;,notnull"`
 	ChatID    int  `pg:",unique;,notnull"`
 	IsBot     bool `pg:",notnull,default:false"`
-	firstName string
-	lastName  string
-	username  string
-	tableName struct{} `pg:"users"`
+	FirstName string
+	LastName  string
+	Username  string
+	Feeds     []*PgFeed `pg:"rel:has-many;join_fk:user_id"`
+	tableName struct{}  `pg:"users"`
 }
 
 // PgFeed is a User model
 type PgFeed struct {
 	BaseModel
+	UserID    string   `pg:"type:uuid"`
 	IsRSS     bool     `pg:",notnull;default:true"`
 	Link      string   `pg:",notnull"`
 	Name      string   `pg:",notnull"`
+	User      *PgUser  `pg:"rel:has-one;fk:user_id"`
 	tableName struct{} `pg:"feeds"`
 }
 
