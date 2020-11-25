@@ -68,7 +68,6 @@ func sendMessage(message MessagePayload) {
 	if err != nil {
 		log.Error().Str("error", err.Error()).Msg("Error reading Telegram response")
 	}
-	log.Info().Str("response", string(body)).Msg("Telegram response body")
 	response := Response{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
