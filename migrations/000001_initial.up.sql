@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS "feeds" (
     "link" text NOT NULL,
     "name" text NOT NULL,
     PRIMARY KEY ("id"),
+    UNIQUE ("user_id", "link"),
     FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
 );
-CREATE INDEX ix_feeds_user_id ON public.feeds USING btree (user_id);
+CREATE INDEX IF NOT EXISTS ix_feeds_user_id ON public.feeds USING btree (user_id);
 COMMIT;
