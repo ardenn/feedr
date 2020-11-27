@@ -40,9 +40,9 @@ type PgUser struct {
 type PgFeed struct {
 	BaseModel
 	ID        string   `pg:"type:uuid,default:gen_random_uuid(),pk"`
-	UserID    int      `pg:",notnull,on_delete:CASCADE"`
+	UserID    int      `pg:",notnull,on_delete:CASCADE,unique:unq_feeds_user_id_link"`
 	IsRSS     bool     `pg:"default:true,notnull"`
-	Link      string   `pg:",notnull"`
+	Link      string   `pg:",notnull,unique:unq_feeds_user_id_link"`
 	Name      string   `pg:",notnull"`
 	User      *PgUser  `pg:"rel:has-one,fk:user_id"`
 	tableName struct{} `pg:"feeds"`
@@ -115,7 +115,7 @@ func addUser(message *Message) (int, error) {
 		IsBot:    message.From.IsBot,
 		Username: message.From.Username,
 	}
-	_, err := db.Model(user).OnConflict("(id) DO UPDATE").
+	_, err := db.Model(&user).OnConflict("(id) DO UPDATE").
 		Set("is_bot = EXCLUDED.is_bot, username = EXCLUDED.username").
 		Insert()
 	if err != nil {
@@ -134,7 +134,8 @@ func addFeed(rawFeed *RawFeed, message *Message) bool {
 		Link:   rawFeed.URL,
 		Name:   rawFeed.Name,
 	}
-	if _, err := db.Model(feed).Insert(); err != nil {
+	if _, err := db.Model(&feed).OnConflict("(user_id,link) DO NOTHING").
+		Insert(); err != nil {
 		log.Error().Str("error", err.Error()).
 			Int("userID", message.From.UserID).
 			Str("feedURL", rawFeed.URL).Msg("Error saving new feed")
