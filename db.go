@@ -13,7 +13,6 @@ import (
 
 // BaseModel implements shared model fields
 type BaseModel struct {
-	ID        string    `pg:"type:uuid,default:gen_random_uuid()"`
 	CreatedAt time.Time `pg:"default:now(),notnull"`
 	UpdatedAt time.Time
 }
@@ -27,8 +26,7 @@ func (b *BaseModel) BeforeUpdate(ctx context.Context) (context.Context, error) {
 // PgUser is a User model
 type PgUser struct {
 	BaseModel
-	UserID    int  `pg:",unique,notnull"`
-	ChatID    int  `pg:",unique,notnull"`
+	ID        int  `pg:",notnull,pk"`
 	IsBot     bool `pg:"default:false,notnull"`
 	FirstName string
 	LastName  string
@@ -41,7 +39,8 @@ type PgUser struct {
 // PgFeed is a User model
 type PgFeed struct {
 	BaseModel
-	UserID    string   `pg:"type:uuid,notnull,on_delete:CASCADE"`
+	ID        string   `pg:"type:uuid,default:gen_random_uuid(),pk"`
+	UserID    int      `pg:",notnull,on_delete:CASCADE"`
 	IsRSS     bool     `pg:"default:true,notnull"`
 	Link      string   `pg:",notnull"`
 	Name      string   `pg:",notnull"`
@@ -94,6 +93,14 @@ func logQueries(*pg.DB) {
 	})
 }
 
+func getUserFeeds(userID int) ([]*PgFeed, error) {
+	var feeds []*PgFeed
+	if err := db.Model(&feeds).Where("user_id = ?", userID).Select(); err != nil {
+		return nil, err
+	}
+	return feeds, nil
+}
+
 func getUsers() ([]*PgUser, error) {
 	var users []*PgUser
 	if err := db.Model(&users).Relation("Feeds").Select(); err != nil {
@@ -102,48 +109,35 @@ func getUsers() ([]*PgUser, error) {
 	return users, nil
 }
 
-func addUser(message Message) string {
+func addUser(message *Message) (int, error) {
 	user := PgUser{
-		UserID:   message.From.UserID,
+		ID:       message.From.UserID,
 		IsBot:    message.From.IsBot,
-		ChatID:   message.Chat.ChatID,
 		Username: message.From.Username,
 	}
-	if _, err := db.Model(user).OnConflict("(user_id,chat_id) DO UPDATE").
+	_, err := db.Model(user).OnConflict("(id) DO UPDATE").
 		Set("is_bot = EXCLUDED.is_bot, username = EXCLUDED.username").
-		Insert(); err != nil {
-		log.Error().Str("error", err.Error()).Int("userID", message.From.UserID).Msg("Error inserting user")
+		Insert()
+	if err != nil {
+		log.Error().Str("error", err.Error()).
+			Int("userID", message.From.UserID).
+			Msg("Error inserting user")
+		return 0, err
 	}
-	return user.ID
+	return user.ID, nil
 }
 
-func addFeed(userID int, fireFeed FireFeed, message Message) bool {
-	var id string
-	err := db.Model((*PgUser)(nil)).Column("id").
-		Where("user_id = ?", userID).
-		Limit(1).
-		Select(&id)
-	if err != nil {
-		log.Error().Str("error", err.Error()).Int("userID", userID).
-			Str("feedURL", fireFeed.URL).Msg("Error getting new feed user")
-		return false
-	}
-	if id == "" {
-		log.Info().Int("userID", userID).Str("feedURL", fireFeed.URL).Msg("User not found, attempting creation")
-		id = addUser(message)
-		if id == "" {
-			return false
-		}
-	}
+func addFeed(rawFeed *RawFeed, message *Message) bool {
 	feed := PgFeed{
-		UserID: id,
-		IsRSS:  fireFeed.IsRSS,
-		Link:   fireFeed.URL,
-		Name:   fireFeed.Name,
+		UserID: message.From.UserID,
+		IsRSS:  rawFeed.IsRSS,
+		Link:   rawFeed.URL,
+		Name:   rawFeed.Name,
 	}
 	if _, err := db.Model(feed).Insert(); err != nil {
-		log.Error().Str("error", err.Error()).Int("userID", userID).
-			Str("feedURL", fireFeed.URL).Msg("Error saving new feed")
+		log.Error().Str("error", err.Error()).
+			Int("userID", message.From.UserID).
+			Str("feedURL", rawFeed.URL).Msg("Error saving new feed")
 		return false
 	}
 	return true
