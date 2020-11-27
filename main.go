@@ -7,17 +7,27 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-pg/pg/v10"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
 )
+
+var db *pg.DB
 
 func main() {
 	// Mux instance
 	r := chi.NewRouter()
 	fire := initClient()
 	defer fire.Close()
-	db := dbConnect()
+	db = dbConnect()
+	logQueries(db)
 	defer db.Close()
+
+	users, err := getUsers()
+	if err != nil {
+		log.Error().Str("error", err.Error()).Msg("Error fetching users")
+	}
+	fmt.Print(users)
 
 	// Middleware
 	r.Use(middleware.RequestID)
