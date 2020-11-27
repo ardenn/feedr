@@ -29,6 +29,7 @@ func initClient() *firestore.Client {
 type FireFeed struct {
 	URL   string `json:"url" firestore:"url"`
 	IsRSS bool   `json:"isRSS" firestore:"isRSS"`
+	Name  string `json:"name" firestore:"name"`
 }
 
 // LastFetch is a firestore last fetch model
