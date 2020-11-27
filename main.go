@@ -17,17 +17,9 @@ var db *pg.DB
 func main() {
 	// Mux instance
 	r := chi.NewRouter()
-	fire := initClient()
-	defer fire.Close()
 	db = dbConnect()
 	logQueries(db)
 	defer db.Close()
-
-	users, err := getUsers()
-	if err != nil {
-		log.Error().Str("error", err.Error()).Msg("Error fetching users")
-	}
-	fmt.Print(users)
 
 	// Middleware
 	r.Use(middleware.RequestID)
@@ -36,7 +28,6 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(hlog.NewHandler(log.Logger))
 	r.Use(hlog.AccessHandler(accessHandlerFunc))
-	r.Use(FirestoreToContext(fire))
 
 	// Routes
 	r.Post("/command", commandHandler)
