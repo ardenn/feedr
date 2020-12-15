@@ -61,17 +61,17 @@ func sendMessage(message MessagePayload) {
 	payload, _ := json.Marshal(message)
 	resp, err := http.Post(apiURL+"sendMessage", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		log.Error().Str("error", err.Error()).Str("body", string(payload)).Msg("Error sending message to Telegram")
+		log.Error().Err(err).Str("body", string(payload)).Msg("Error sending message to Telegram")
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Msg("Error reading Telegram response")
+		log.Error().Err(err).Msg("Error reading Telegram response")
 	}
 	response := Response{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Msg("Error decoding Telegram response body")
+		log.Error().Err(err).Msg("Error decoding Telegram response body")
 	}
 	if !response.OK {
 		log.Info().Str("description", response.Description).Msg("Telegram request unsuccesful")

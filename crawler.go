@@ -20,7 +20,7 @@ type RawFeed struct {
 func processUsers() {
 	users, err := getUsers()
 	if err != nil {
-		log.Error().Str("error", err.Error()).Msg("Error fetching users")
+		log.Error().Err(err).Msg("Error fetching users")
 		return
 	}
 	var wg sync.WaitGroup
@@ -37,12 +37,12 @@ func processUsers() {
 func fetchFeed(feed *PgFeed, lastUpdated time.Time, chatID int, wg *sync.WaitGroup) {
 	resp, err := http.Get(feed.Link)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Str("feedURL", feed.Link).Msg("Error fetching feed")
+		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error fetching feed")
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Str("feedURL", feed.Link).Msg("Error processing feed URL")
+		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error processing feed URL")
 	}
 	if feed.IsRSS {
 		fd := Rss{}
