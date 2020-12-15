@@ -22,7 +22,7 @@ func IsURL(str string) bool {
 func processNewURL(url string) (*RawFeed, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Str("feedUrl", url).Msg("Error fetching new URL")
+		log.Error().Err(err).Str("feedUrl", url).Msg("Error fetching new URL")
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -32,7 +32,7 @@ func processNewURL(url string) (*RawFeed, error) {
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Str("feedUrl", url).Msg("Error processing new URL")
+		log.Error().Err(err).Str("feedUrl", url).Msg("Error processing new URL")
 		return nil, err
 	}
 	rss := Rss{}
@@ -108,7 +108,7 @@ func listHandler(update *Update) {
 	message := "Your feeds:\n"
 	feeds, err := getUserFeeds(update.Message.From.UserID)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Msg("Error reading feed list")
+		log.Error().Err(err).Msg("Error reading feed list")
 		sendMessage(MessagePayload{
 			ChatID: update.Message.Chat.ChatID,
 			Text:   "Oops! An error occurred when fetching feeds",
@@ -140,7 +140,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	update := Update{}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Error().Str("error", err.Error()).Msg("Error reading request body")
+		log.Error().Err(err).Msg("Error reading request body")
 	}
 	json.Unmarshal(body, &update)
 	switch {
