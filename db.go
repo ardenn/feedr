@@ -60,7 +60,7 @@ func dbConnect() (db *pg.DB) {
 	}
 	d, err := pg.ParseURL(os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatal().Str("error", err.Error()).Msg("Error parsing DATABASE_URL")
+		log.Fatal().Err(err).Msg("Error parsing DATABASE_URL")
 	}
 	db = pg.Connect(d)
 	return
@@ -119,7 +119,7 @@ func addUser(message *Message) (int, error) {
 		Set("is_bot = EXCLUDED.is_bot, username = EXCLUDED.username").
 		Insert()
 	if err != nil {
-		log.Error().Str("error", err.Error()).
+		log.Error().Err(err).
 			Int("userID", message.From.UserID).
 			Msg("Error inserting user")
 		return 0, err
@@ -136,7 +136,7 @@ func addFeed(rawFeed *RawFeed, message *Message) bool {
 	}
 	if _, err := db.Model(&feed).OnConflict("(user_id,link) DO NOTHING").
 		Insert(); err != nil {
-		log.Error().Str("error", err.Error()).
+		log.Error().Err(err).
 			Int("userID", message.From.UserID).
 			Str("feedURL", rawFeed.URL).Msg("Error saving new feed")
 		return false
