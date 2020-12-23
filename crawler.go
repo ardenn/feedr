@@ -25,7 +25,16 @@ func processUsers() {
 	}
 	var wg sync.WaitGroup
 	for _, user := range users {
-		lastFetch := time.Now().Add(time.Minute * -30)
+		var lastFetch time.Time
+		if user.LastFetch == nil {
+			lastFetch = time.Now().Add(time.Minute * -30)
+			log.Info().Int("userID", user.ID).Time("lastFetch", lastFetch).
+				Msg("lastFetch is NULL, setting to 30 mins ago")
+		} else {
+			lastFetch = *user.LastFetch
+			log.Info().Int("userID", user.ID).Time("lastFetch", lastFetch).
+				Msg("lastFetch is NOT NULL")
+		}
 		for _, f := range user.Feeds {
 			wg.Add(1)
 			go fetchFeed(f, lastFetch, user.ID, &wg)
@@ -35,6 +44,8 @@ func processUsers() {
 }
 
 func fetchFeed(feed *PgFeed, lastUpdated time.Time, chatID int, wg *sync.WaitGroup) {
+	defer updateLastFetch(chatID)
+	defer wg.Done()
 	resp, err := http.Get(feed.Link)
 	if err != nil {
 		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error fetching feed")
@@ -59,5 +70,4 @@ func fetchFeed(feed *PgFeed, lastUpdated time.Time, chatID int, wg *sync.WaitGro
 		}
 		fd.toTelegram(lastUpdated, chatID)
 	}
-	wg.Done()
 }

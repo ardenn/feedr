@@ -32,7 +32,7 @@ type PgUser struct {
 	LastName  string
 	Username  string
 	Feeds     []*PgFeed `pg:"rel:has-many,join_fk:user_id"`
-	LastFetch time.Time
+	LastFetch *time.Time
 	tableName struct{} `pg:"users"`
 }
 
@@ -139,6 +139,18 @@ func addFeed(rawFeed *RawFeed, message *Message) bool {
 		log.Error().Err(err).
 			Int("userID", message.From.UserID).
 			Str("feedURL", rawFeed.URL).Msg("Error saving new feed")
+		return false
+	}
+	return true
+}
+
+func updateLastFetch(userID int) bool {
+	_, err := db.Model((*PgUser)(nil)).
+		Set("last_fetch = ?", time.Now()).
+		Where("id = ?", userID).
+		Update()
+	if err != nil {
+		log.Error().Err(err).Int("userID", userID).Msg("Failed to update lastFetch")
 		return false
 	}
 	return true
