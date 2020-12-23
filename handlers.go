@@ -54,7 +54,7 @@ func processNewURL(url string) (*RawFeed, error) {
 func startHandler(update *Update) {
 	userID, _ := addUser(&update.Message)
 	if userID == 0 {
-		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! Something went wrong!"})
+		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! Something went wrong!"})
 		return
 	}
 	message := `
@@ -62,7 +62,7 @@ func startHandler(update *Update) {
 
 	Add feeds (atom/rss) and we'll subscribe and ping you whenever there's an update.
 	`
-	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
+	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
 	return
 }
 
@@ -76,7 +76,7 @@ func helpHandler(update *Update) {
 	/remove <feed url> - Unsubsribe from a feed
 	/clear - Clear all feeds and reset account
 	`
-	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
+	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
 	return
 }
 
@@ -88,19 +88,19 @@ func addHandler(update *Update) {
 	}
 	if _, err := url.Parse(rawURL); err != nil {
 		log.Info().Str("feedURL", rawURL).Msg("Invalid URL")
-		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That was an invalid URL"})
+		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That was an invalid URL"})
 		return
 	}
 	rawFeed, err := processNewURL(rawURL)
 	if err != nil {
-		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: err.Error()})
+		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: err.Error()})
 		return
 	}
 	if addFeed(rawFeed, &update.Message) {
-		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Success! Feed has been added"})
+		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Success! Feed has been added"})
 		return
 	}
-	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"})
+	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"})
 	return
 }
 
@@ -109,7 +109,7 @@ func listHandler(update *Update) {
 	feeds, err := getUserFeeds(update.Message.From.UserID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error reading feed list")
-		sendMessage(MessagePayload{
+		go sendMessage(MessagePayload{
 			ChatID: update.Message.Chat.ChatID,
 			Text:   "Oops! An error occurred when fetching feeds",
 		})
@@ -127,7 +127,7 @@ func listHandler(update *Update) {
 			message += fmt.Sprintln("-", val.Host)
 		}
 	}
-	sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
+	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
 	return
 }
 
@@ -154,7 +154,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		addHandler(&update)
 	default:
 		log.Info().Str("command", update.Message.Text).Msg("Invalid command")
-		sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"})
+		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"})
 	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, `{"message":"success"}`)

@@ -32,7 +32,7 @@ func (atom *Atom) toTelegram(lastDate time.Time, chatID int) {
 	for _, item := range atom.Entries {
 		if item.pubTime().After(lastDate) {
 			message := fmt.Sprintf("<b>%s</b>\n<a href='%s'>%s</>", atom.Title, item.Link.Href, item.Title)
-			sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"})
+			go sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"})
 		}
 	}
 }

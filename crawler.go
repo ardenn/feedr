@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -17,35 +16,35 @@ type RawFeed struct {
 	Name  string `json:"name" firestore:"name"`
 }
 
+func processUser(user *PgUser) {
+	defer updateLastFetch(user.ID)
+	var lastFetch time.Time
+	if user.LastFetch == nil {
+		lastFetch = time.Now().Add(time.Minute * -30)
+		log.Info().Int("userID", user.ID).Time("lastFetch", lastFetch).
+			Msg("lastFetch is NULL, setting to 30 mins ago")
+	} else {
+		lastFetch = *user.LastFetch
+		log.Info().Int("userID", user.ID).Time("lastFetch", lastFetch).
+			Msg("lastFetch is NOT NULL")
+	}
+	for _, f := range user.Feeds {
+		go fetchFeed(f, lastFetch, user.ID)
+	}
+
+}
 func processUsers() {
 	users, err := getUsers()
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching users")
 		return
 	}
-	var wg sync.WaitGroup
 	for _, user := range users {
-		var lastFetch time.Time
-		if user.LastFetch == nil {
-			lastFetch = time.Now().Add(time.Minute * -30)
-			log.Info().Int("userID", user.ID).Time("lastFetch", lastFetch).
-				Msg("lastFetch is NULL, setting to 30 mins ago")
-		} else {
-			lastFetch = *user.LastFetch
-			log.Info().Int("userID", user.ID).Time("lastFetch", lastFetch).
-				Msg("lastFetch is NOT NULL")
-		}
-		for _, f := range user.Feeds {
-			wg.Add(1)
-			go fetchFeed(f, lastFetch, user.ID, &wg)
-		}
+		processUser(user)
 	}
-	wg.Wait()
 }
 
-func fetchFeed(feed *PgFeed, lastUpdated time.Time, chatID int, wg *sync.WaitGroup) {
-	defer updateLastFetch(chatID)
-	defer wg.Done()
+func fetchFeed(feed *PgFeed, lastUpdated time.Time, chatID int) {
 	resp, err := http.Get(feed.Link)
 	if err != nil {
 		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error fetching feed")
