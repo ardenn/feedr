@@ -10,4 +10,4 @@ _/ ____\  ____    ____    __| _/_______
 `
 
 // Version tracks the app version
-const Version string = "2.0.0"
+const Version string = "2.0.1"
