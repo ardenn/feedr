@@ -17,46 +17,46 @@ type TelegramFeed struct {
 	Description string `json:"description"`
 }
 
-// Chat model
-type Chat struct {
+// TelegramChat model
+type TelegramChat struct {
 	ChatID int `json:"id"`
 }
 
-// User model
-type User struct {
+// TelegramUser model
+type TelegramUser struct {
 	UserID   int    `json:"id"`
 	IsBot    bool   `json:"is_bot"`
 	Username string `json:"username"`
 }
 
-// Message is Telegram Message Object
-type Message struct {
-	MessageID int    `json:"message_id"`
-	Chat      Chat   `json:"chat"`
-	Text      string `json:"text"`
-	From      User   `json:"from"`
+// TelegramMessage is Telegram TelegramMessage Object
+type TelegramMessage struct {
+	MessageID int          `json:"message_id"`
+	Chat      TelegramChat `json:"chat"`
+	Text      string       `json:"text"`
+	From      TelegramUser `json:"from"`
 }
 
-// Update is a Telegram Update Object
-type Update struct {
-	UpdateID int     `json:"update_id"`
-	Message  Message `json:"message"`
+// TelegramUpdate is a Telegram TelegramUpdate Object
+type TelegramUpdate struct {
+	UpdateID int             `json:"update_id"`
+	Message  TelegramMessage `json:"message"`
 }
 
-// MessagePayload defines the request payload to sendMessage on Telegram
-type MessagePayload struct {
+// TelegramMessagePayload defines the request payload to sendMessage on Telegram
+type TelegramMessagePayload struct {
 	ChatID    int    `json:"chat_id"`
 	Text      string `json:"text"`
 	ParseMode string `json:"parse_mode,omitempty"`
 }
 
-// Response model
-type Response struct {
+// TelegramResponse model
+type TelegramResponse struct {
 	OK          bool   `json:"ok"`
 	Description string `json:"description"`
 }
 
-func sendMessage(message MessagePayload) {
+func sendMessage(message TelegramMessagePayload) {
 	apiURL := "https://api.telegram.org/bot" + os.Getenv("BOT_TOKEN") + "/"
 	payload, _ := json.Marshal(message)
 	resp, err := http.Post(apiURL+"sendMessage", "application/json", bytes.NewBuffer(payload))
@@ -68,7 +68,7 @@ func sendMessage(message MessagePayload) {
 	if err != nil {
 		log.Error().Err(err).Msg("Error reading Telegram response")
 	}
-	response := Response{}
+	response := TelegramResponse{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		log.Error().Err(err).Msg("Error decoding Telegram response body")

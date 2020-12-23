@@ -28,7 +28,7 @@ func (rss *Rss) toTelegram(lastDate time.Time, chatID int) {
 	for _, item := range rss.Channel.Items {
 		if item.pubTime().After(lastDate) {
 			message := fmt.Sprintf("<b>%s</b>\n<a href='%s'>%s</>", rss.Channel.Title, item.Link, item.Title)
-			sendMessage(MessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"})
+			sendMessage(TelegramMessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"})
 		}
 	}
 }

@@ -16,7 +16,7 @@ type RawFeed struct {
 	Name  string `json:"name" firestore:"name"`
 }
 
-func processUser(user *PgUser) {
+func processUser(user *User) {
 	defer updateLastFetch(user.ID)
 	var lastFetch time.Time
 	if user.LastFetch == nil {
@@ -44,7 +44,7 @@ func processUsers() {
 	}
 }
 
-func fetchFeed(feed *PgFeed, lastUpdated time.Time, chatID int) {
+func fetchFeed(feed *Feed, lastUpdated time.Time, chatID int) {
 	resp, err := http.Get(feed.Link)
 	if err != nil {
 		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error fetching feed")
