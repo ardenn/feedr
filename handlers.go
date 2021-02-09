@@ -20,7 +20,7 @@ func IsURL(str string) bool {
 }
 
 func processNewURL(url string) (*RawFeed, error) {
-	resp, err := http.Get(url)
+	resp, err := getRequest(url)
 	if err != nil {
 		log.Error().Err(err).Str("feedUrl", url).Msg("Error fetching new URL")
 		return nil, err
@@ -51,10 +51,10 @@ func processNewURL(url string) (*RawFeed, error) {
 
 }
 
-func startHandler(update *Update) {
+func startHandler(update *TelegramUpdate) {
 	userID, _ := addUser(&update.Message)
 	if userID == 0 {
-		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! Something went wrong!"})
+		go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! Something went wrong!"})
 		return
 	}
 	message := `
@@ -62,11 +62,11 @@ func startHandler(update *Update) {
 
 	Add feeds (atom/rss) and we'll subscribe and ping you whenever there's an update.
 	`
-	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
+	go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
 	return
 }
 
-func helpHandler(update *Update) {
+func helpHandler(update *TelegramUpdate) {
 	message := `
 	You can control me by sending these commands:
 
@@ -76,11 +76,11 @@ func helpHandler(update *Update) {
 	/remove <feed url> - Unsubsribe from a feed
 	/clear - Clear all feeds and reset account
 	`
-	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
+	go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
 	return
 }
 
-func addHandler(update *Update) {
+func addHandler(update *TelegramUpdate) {
 	raw := strings.Split(update.Message.Text, "/add ")
 	var rawURL string = raw[1]
 	if !strings.HasPrefix(rawURL, "http") {
@@ -88,28 +88,28 @@ func addHandler(update *Update) {
 	}
 	if _, err := url.Parse(rawURL); err != nil {
 		log.Info().Str("feedURL", rawURL).Msg("Invalid URL")
-		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That was an invalid URL"})
+		go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That was an invalid URL"})
 		return
 	}
 	rawFeed, err := processNewURL(rawURL)
 	if err != nil {
-		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: err.Error()})
+		go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: err.Error()})
 		return
 	}
 	if addFeed(rawFeed, &update.Message) {
-		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Success! Feed has been added"})
+		go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Success! Feed has been added"})
 		return
 	}
-	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"})
+	go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! An error occured when saving feed"})
 	return
 }
 
-func listHandler(update *Update) {
+func listHandler(update *TelegramUpdate) {
 	message := "Your feeds:\n"
 	feeds, err := getUserFeeds(update.Message.From.UserID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error reading feed list")
-		go sendMessage(MessagePayload{
+		go sendMessage(TelegramMessagePayload{
 			ChatID: update.Message.Chat.ChatID,
 			Text:   "Oops! An error occurred when fetching feeds",
 		})
@@ -127,17 +127,17 @@ func listHandler(update *Update) {
 			message += fmt.Sprintln("-", val.Host)
 		}
 	}
-	go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
+	go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: message})
 	return
 }
 
-func removeHandler(update *Update) {
+func removeHandler(update *TelegramUpdate) {
 	return
 }
 
 func commandHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	update := Update{}
+	update := TelegramUpdate{}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Error reading request body")
@@ -154,7 +154,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		addHandler(&update)
 	default:
 		log.Info().Str("command", update.Message.Text).Msg("Invalid command")
-		go sendMessage(MessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"})
+		go sendMessage(TelegramMessagePayload{ChatID: update.Message.Chat.ChatID, Text: "Oops! That's an unknown command"})
 	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, `{"message":"success"}`)

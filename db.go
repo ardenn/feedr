@@ -23,28 +23,28 @@ func (b *BaseModel) BeforeUpdate(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
-// PgUser is a User model
-type PgUser struct {
+// User is a User model
+type User struct {
 	BaseModel
 	ID        int  `pg:",notnull,pk"`
 	IsBot     bool `pg:"default:false,notnull"`
 	FirstName string
 	LastName  string
 	Username  string
-	Feeds     []*PgFeed `pg:"rel:has-many,join_fk:user_id"`
+	Feeds     []*Feed `pg:"rel:has-many,join_fk:user_id"`
 	LastFetch *time.Time
 	tableName struct{} `pg:"users"`
 }
 
-// PgFeed is a User model
-type PgFeed struct {
+// Feed is a User model
+type Feed struct {
 	BaseModel
 	ID        string   `pg:"type:uuid,default:gen_random_uuid(),pk"`
 	UserID    int      `pg:",notnull,on_delete:CASCADE,unique:unq_feeds_user_id_link"`
 	IsRSS     bool     `pg:"default:true,notnull"`
 	Link      string   `pg:",notnull,unique:unq_feeds_user_id_link"`
 	Name      string   `pg:",notnull"`
-	User      *PgUser  `pg:"rel:has-one,fk:user_id"`
+	User      *User    `pg:"rel:has-one,fk:user_id"`
 	tableName struct{} `pg:"feeds"`
 }
 
@@ -69,8 +69,8 @@ func dbConnect() (db *pg.DB) {
 
 func createSchema(db *pg.DB) error {
 	models := []interface{}{
-		(*PgUser)(nil),
-		(*PgFeed)(nil),
+		(*User)(nil),
+		(*Feed)(nil),
 	}
 	for _, model := range models {
 		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
@@ -93,24 +93,24 @@ func logQueries(*pg.DB) {
 	})
 }
 
-func getUserFeeds(userID int) ([]*PgFeed, error) {
-	var feeds []*PgFeed
+func getUserFeeds(userID int) ([]*Feed, error) {
+	var feeds []*Feed
 	if err := db.Model(&feeds).Where("user_id = ?", userID).Select(); err != nil {
 		return nil, err
 	}
 	return feeds, nil
 }
 
-func getUsers() ([]*PgUser, error) {
-	var users []*PgUser
+func getUsers() ([]*User, error) {
+	var users []*User
 	if err := db.Model(&users).Relation("Feeds").Select(); err != nil {
 		return nil, err
 	}
 	return users, nil
 }
 
-func addUser(message *Message) (int, error) {
-	user := PgUser{
+func addUser(message *TelegramMessage) (int, error) {
+	user := User{
 		ID:       message.From.UserID,
 		IsBot:    message.From.IsBot,
 		Username: message.From.Username,
@@ -127,8 +127,8 @@ func addUser(message *Message) (int, error) {
 	return user.ID, nil
 }
 
-func addFeed(rawFeed *RawFeed, message *Message) bool {
-	feed := PgFeed{
+func addFeed(rawFeed *RawFeed, message *TelegramMessage) bool {
+	feed := Feed{
 		UserID: message.From.UserID,
 		IsRSS:  rawFeed.IsRSS,
 		Link:   rawFeed.URL,
@@ -145,7 +145,7 @@ func addFeed(rawFeed *RawFeed, message *Message) bool {
 }
 
 func updateLastFetch(userID int) bool {
-	_, err := db.Model((*PgUser)(nil)).
+	_, err := db.Model((*User)(nil)).
 		Set("last_fetch = ?", time.Now()).
 		Where("id = ?", userID).
 		Update()
