@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/xml"
 	"io/ioutil"
-	"net/http"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -45,7 +44,7 @@ func processUsers() {
 }
 
 func fetchFeed(feed *Feed, lastUpdated time.Time, chatID int) {
-	resp, err := http.Get(feed.Link)
+	resp, err := getRequest(feed.Link)
 	if err != nil {
 		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error fetching feed")
 	}

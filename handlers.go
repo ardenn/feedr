@@ -20,7 +20,7 @@ func IsURL(str string) bool {
 }
 
 func processNewURL(url string) (*RawFeed, error) {
-	resp, err := http.Get(url)
+	resp, err := getRequest(url)
 	if err != nil {
 		log.Error().Err(err).Str("feedUrl", url).Msg("Error fetching new URL")
 		return nil, err
