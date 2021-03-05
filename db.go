@@ -46,6 +46,7 @@ type Feed struct {
 	Name      string   `pg:",notnull"`
 	User      *User    `pg:"rel:has-one,fk:user_id"`
 	tableName struct{} `pg:"feeds"`
+	Rhash     string
 }
 
 func dbConnect() (db *pg.DB) {

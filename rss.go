@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -24,9 +25,12 @@ type Item struct {
 	PubDate string `xml:"pubDate" json:"pubdate"`
 }
 
-func (rss *Rss) toTelegram(lastDate time.Time, chatID int) {
+func (rss *Rss) toTelegram(lastDate time.Time, chatID int, rHash string) {
 	for _, item := range rss.Channel.Items {
 		if item.pubTime().After(lastDate) {
+			if rHash != "" {
+				item.Link = fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.QueryEscape(item.Link), rHash)
+			}
 			message := fmt.Sprintf("<b>%s</b>\n<a href='%s'>%s</>", rss.Channel.Title, item.Link, item.Title)
 			sendMessage(TelegramMessagePayload{ChatID: chatID, Text: message, ParseMode: "HTML"})
 		}
