@@ -40,7 +40,10 @@ func (rss *Rss) toTelegram(lastDate time.Time, chatID int, rHash string) {
 func (item *Item) pubTime() time.Time {
 	pubDate, err := time.Parse(time.RFC1123Z, item.PubDate)
 	if err != nil {
-		return time.Now()
+		pubDate, err = time.Parse(time.RFC3339, item.PubDate)
+		if err != nil {
+			return time.Now().Add(time.Hour * -24)
+		}
 	}
 	return pubDate
 }
