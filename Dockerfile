@@ -34,7 +34,7 @@ RUN go mod verify
 # compiling only for linux target and
 # disabling cross compilation.
 ENV CGO_ENABLED=0
-RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/feedr
+RUN GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-w -s" -o /go/bin/feedr
 
 ############################
 # STEP 2 build a small image
