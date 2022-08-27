@@ -33,7 +33,7 @@ func main() {
 	r.Get("/crawl", crawlHandler)
 
 	// Start server
-	fmt.Println(banner)
+	fmt.Print(banner)
 	fmt.Println("Version: ", Version)
 	fmt.Println("Server started on port " + os.Getenv("PORT") + " ...")
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), r); err != nil {

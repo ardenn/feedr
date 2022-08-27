@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -30,7 +30,7 @@ func processNewURL(url string) (*RawFeed, error) {
 		log.Error().Str("feedUrl", url).Msg("URL response not valid xml")
 		return nil, errors.New("Oops! we couldn't get a valid feed from that URL")
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error().Err(err).Str("feedUrl", url).Msg("Error processing new URL")
 		return nil, err
@@ -48,7 +48,6 @@ func processNewURL(url string) (*RawFeed, error) {
 		return &RawFeed{URL: url, IsRSS: false, Name: atom.Title}, nil
 	}
 	return &RawFeed{URL: url, IsRSS: true, Name: rss.Channel.Title}, nil
-
 }
 
 func startHandler(update *TelegramUpdate) {
@@ -138,7 +137,7 @@ func removeHandler(update *TelegramUpdate) {
 func commandHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	update := TelegramUpdate{}
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Error reading request body")
 	}

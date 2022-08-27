@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -64,7 +64,7 @@ func sendMessage(message TelegramMessagePayload) {
 		log.Error().Err(err).Str("body", string(payload)).Msg("Error sending message to Telegram")
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Error reading Telegram response")
 	}

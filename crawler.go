@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/xml"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -30,8 +30,8 @@ func processUser(user *User) {
 	for _, f := range user.Feeds {
 		go fetchFeed(f, lastFetch, user.ID)
 	}
-
 }
+
 func processUsers() {
 	users, err := getUsers()
 	if err != nil {
@@ -49,7 +49,7 @@ func fetchFeed(feed *Feed, lastUpdated time.Time, chatID int) {
 		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error fetching feed")
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error().Err(err).Str("feedURL", feed.Link).Msg("Error processing feed URL")
 	}
