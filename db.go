@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -59,13 +60,12 @@ func dbConnect() (db *pg.DB) {
 		})
 		return
 	}
-	d, err := pg.ParseURL(os.Getenv("DATABASE_URL"))
+	d, err := pg.ParseURL(fmt.Sprint(os.Getenv("DATABASE_URL"), "?sslmode=disable"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error parsing DATABASE_URL")
 	}
 	db = pg.Connect(d)
 	return
-
 }
 
 func createSchema(db *pg.DB) error {
