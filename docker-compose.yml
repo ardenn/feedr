@@ -1,0 +1,15 @@
+version: "3.5"
+services:
+  postgres:
+    container_name: feedr-postgres
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: "feedr"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_USER: "postgres"
+      PGDATA: "/var/lib/postgresql/data"
+    volumes:
+      - "~/data/feedr/:/var/lib/postgresql/data:z"
+    restart: always
