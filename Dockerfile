@@ -61,7 +61,7 @@ USER appuser:appuser
 # ENV PROJECT_ID = ""
 
 # Expose a port  > 1024
-EXPOSE 8000
+EXPOSE 8080
 
 # Run the binary.
 ENTRYPOINT ["/go/bin/feedr"]
